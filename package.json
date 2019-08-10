@@ -8,8 +8,5 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@mostly-adequate/support": "^2.0.1",
-    "fp-ts": "^2.0.3"
-  }
+  "dependencies": {}
 }
