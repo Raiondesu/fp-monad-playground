@@ -1,6 +1,4 @@
-import { Functor } from './functor';
-
-export interface Foldable<Cases extends {
+interface Foldable<Cases extends {
   [key: string]: any;
 }> {
   fold<N extends Functor<any>>(match: {

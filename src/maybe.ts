@@ -1,8 +1,3 @@
-import { Foldable } from './foldable';
-import { isFunctor, Functor } from './functor';
-import { Monad, monad, isMonad, Join } from './monad';
-import { isApplicable, Apply } from './applicative';
-
 interface FoldableMaybe<T> extends Monad<T>, Foldable<{
   just: T;
   nothing: undefined;
@@ -13,7 +8,7 @@ interface FoldableMaybe<T> extends Monad<T>, Foldable<{
   readonly isJust: boolean;
 }
 
-export type Maybe<T> = Nothing<T> | Just<T>;
+type Maybe<T> = Nothing<T> | Just<T>;
 
 interface Nothing<T> extends FoldableMaybe<T> {
   readonly isNothing: true;
@@ -25,10 +20,10 @@ interface Just<T> extends FoldableMaybe<T> {
   readonly isJust: true;
 }
 
-export const isJust = <T>(m: Maybe<T>): m is Just<T> => !!m.isJust;
-export const isNothing = <T>(m: Maybe<T>): m is Nothing<T> => !!m.isNothing;
+const isJust = <T>(m: Maybe<T>): m is Just<T> => !!m.isJust;
+const isNothing = <T>(m: Maybe<T>): m is Nothing<T> => !!m.isNothing;
 
-export function just<T>(value: T): Just<T> {
+function just<T>(value: T): Just<T> {
   const j: Just<T> = monad({
     get isJust(): true { return true; },
     get isNothing(): false { return false; },
@@ -61,7 +56,7 @@ export function just<T>(value: T): Just<T> {
   return j;
 }
 
-export function nothing<T>(): Nothing<T> {
+function nothing<T>(): Nothing<T> {
   return {
     [Functor]: Functor,
     [Monad]: Monad,
@@ -94,6 +89,6 @@ export function nothing<T>(): Nothing<T> {
   };
 }
 
-export function maybe<T>(value?: T | undefined | null): Maybe<T> {
+function maybe<T>(value?: T | undefined | null): Maybe<T> {
   return value == null ? nothing() : just(value);
 }

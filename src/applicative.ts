@@ -1,11 +1,9 @@
-import { Functor } from './functor';
-
-export type Apply<T, This> = T extends (x: infer FT) => infer N
+type Apply<T, This> = T extends (x: infer FT) => infer N
   ? <F extends Functor<FT>>(f: F) => Functor<N>
   : (f: any) => This;
 
-export const isApplicable = <T = any, R = any>(v: any): v is (x: T) => R => typeof v === 'function';
+const isApplicable = <T = any, R = any>(v: any): v is (x: T) => R => typeof v === 'function';
 
-export interface Applicative<T> extends Functor<T> {
+interface Applicative<T> extends Functor<T> {
   apply: Apply<T, this>;
 }
