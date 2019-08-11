@@ -7,3 +7,4 @@ interface Concat {
 const concat = <A extends Concat>(a: A) => <B extends A>(b: B): B => a.concat(b);
 const append = <A extends Concat>(a: A) => <B extends A>(b: B): B => b.concat(a);
 
+const pure = <F extends (...args: any[]) => any>(f: F) => (...args: Parameters<F>) => () => f(...args);
