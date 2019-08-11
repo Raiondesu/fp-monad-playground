@@ -1,98 +1,99 @@
-class Maybe<T> extends Monad<T> implements Foldable<'just' | 'nothing'> {
-  protected constructor($value?: T | null | undefined) {
-    super($value as any);
-  }
+import { Foldable } from './foldable';
+import { isFunctor, Functor } from './functor';
+import { Monad, monad, isMonad, Join } from './monad';
+import { isApplicable, Apply } from './applicative';
 
-  fold<N extends Functor<any>>(match: {
-    just: (x: T) => N;
-    nothing: (x?: undefined) => N;
-  }): N {
-    if (this.isNothing) {
-      return match.nothing();
-    } else {
-      return match.just(this.value);
-    }
-  }
+interface FoldableMaybe<T> extends Monad<T>, Foldable<{
+  just: T;
+  nothing: undefined;
+}> {
+  map<N>(f: (x: T) => N): Maybe<N>;
 
-  get isNothing() {
-    return this.value == null;
-  }
-
-  get isJust() {
-    return !this.isNothing;
-  }
-
-  map<N>(f: (x: T) => N) {
-    return this.isNothing ? nothing<N>() : just<N>(f(this.value));
-  }
-
-  chain<N extends Monad<any>>(fn: (x: T) => N): N {
-    return fn(this.value);
-  }
-
-  static of<
-    T,
-    Result extends T = Exclude<T, undefined | null>
-  >(x?: T): Maybe<Result> {
-    return new this(x as Result);
-  }
-
-  toString() {
-    return this.isNothing ? 'Nothing' : `Just(${this.value})`;
-  }
+  readonly isNothing: boolean;
+  readonly isJust: boolean;
 }
 
-function just<
-  T,
-  Result extends T = Exclude<T, undefined | null>
->(x: T): Maybe<Result> {
-  return Maybe.of(x as Result);
+export type Maybe<T> = Nothing<T> | Just<T>;
+
+interface Nothing<T> extends FoldableMaybe<T> {
+  readonly isNothing: true;
+  readonly isJust: false;
 }
 
-function nothing<
-  T,
-  Result extends T = Exclude<T, undefined | null>
->(): Maybe<Result> {
-  return Maybe.of<Result>();
+interface Just<T> extends FoldableMaybe<T> {
+  readonly isNothing: false;
+  readonly isJust: true;
 }
 
-const usernameInput = document.querySelector('#username') as HTMLInputElement;
-const username = usernameInput.value;
-let error = '';
+export const isJust = <T>(m: Maybe<T>): m is Just<T> => !!m.isJust;
+export const isNothing = <T>(m: Maybe<T>): m is Nothing<T> => !!m.isNothing;
 
-if (username.length < 8) {
-  error = 'Username must be at least 8 symbols long';
-}
+export function just<T>(value: T): Just<T> {
+  const j: Just<T> = monad({
+    get isJust(): true { return true; },
+    get isNothing(): false { return false; },
 
-if (username.includes('fuck')) {
-  error = 'Please, don\'t swear in usernames!';
-}
+    toString: () => `Just(${value})`,
 
-fetch(`my-server-api.com/get-user?username=${username}`)
-  .then(user => {
-    console.log(user);
+    join: (isFunctor<T>(value)
+      ? isMonad<T>(value)
+        ? () => value.join()
+        : () => value
+      : () => j
+    ) as Join<T, Just<T>>,
+
+    
+    apply: (isApplicable(value)
+      ? (f: any) => f.map(value)
+      : function (this: any) { return this; }
+    ) as Apply<T, Just<T>>,
+
+    map: <N>(f: (x: T) => N) => just(f(value)),
+
+    chain: <N extends Monad<any>>(fn: (x: T) => N): N => fn(value),
+
+    fold: <N extends Functor<any>>(match: {
+      just: (x: T) => N;
+      nothing: (x?: undefined) => N;
+    }): N => match.just(value)
   });
 
+  return j;
+}
 
-Effect.of(document)
-  .map(prop('querySelector'))
-  .chain($ => just($('#username') as HTMLInputElement))
-  .map(prop('value'))
-  .chain((username): Either<Error, string> => username.length < 8
-    ? Either.left(new Error('Username must be at least 8 symbols long'))
-    : Either.right(username)
-  )
-  .map(username => username.includes('fuck')
-    ? Either.left<Error, string>(new Error('Please, don\'t swear in usernames!'))
-    : Either.right<string, Error>(username)
-  )
-  .fold({
-    right: _ => _.fold({
-      right: _ => identity(fetch(`my-server-api.com/get-user?username=${username}`)),
-      left: _ => identity(new Promise((r) => r(console.log(_))))
-    }),
-    left: _ => identity(new Promise((r) => r(console.log(_))))
-  })
-  .map(result => {
-    
-  })
+export function nothing<T>(): Nothing<T> {
+  return {
+    [Functor]: Functor,
+    [Monad]: Monad,
+
+    get isJust(): false { return false; },
+    get isNothing(): true { return true; },
+
+    toString: () => `Nothing`,
+
+    join() {
+      return this as any;
+    },
+
+    apply: function (this: any, _: any) {
+      return this;
+    } as Apply<T, Nothing<T>>,
+
+    map<N>(_f: (x: T) => N): Nothing<N> {
+      return this as any;
+    },
+
+    chain<N extends Monad<any>>(_fn: (x: T) => N): N {
+      return this as any;
+    },
+
+    fold: <N extends Functor<any>>(match: {
+      just: (x: T) => N;
+      nothing: (x?: undefined) => N;
+    }): N => match.nothing(),
+  };
+}
+
+export function maybe<T>(value?: T | undefined | null): Maybe<T> {
+  return value == null ? nothing() : just(value);
+}
