@@ -12,7 +12,7 @@ function effect<
 >(_value: O) {
   const value = (typeof _value === 'function' ? _value : () => _value) as T;
 
-  const ef: Effect<T> = monad({
+  return monad({
     toString: () => `Effect(${value.name})`,
 
     map: <N>(f: (x: ReturnType<T>) => N) => effect(
@@ -20,14 +20,14 @@ function effect<
     ),
 
     // TODO
-    join: () => value().execute() as any as Join<ReturnType<T>, Effect<T>>,
+    join: (() => value().execute()) as any as Join<ReturnType<T>, Effect<T>>,
 
     // TODO
     apply: (
       function (this: any) { return this; } as any
     ) as Apply<T, Effect<T>>,
 
-    chain<N extends Monad<any>>(fn: (x: T) => N) {
+    chain<N extends Monad<any>>(fn: (x: ReturnType<T>) => N): Effect<() => N> {
       return this.map(fn).join();
     },
 
@@ -35,34 +35,4 @@ function effect<
       return value;
     }
   });
-
-  return ef;
 }
-
-effect(() => window)
-
-// class Effect<T extends (...args: any[]) => any> extends Monad<T> {
-//   public constructor(value: T) {
-//     super(value);
-//   }
-  
-//   map<N>(f: (x: ReturnType<T>) => N) {
-//     return new Effect((...args: Parameters<T>) => f(this.value(...args)));
-//   }
-
-//   chain<N extends Monad<any>>(fn: (x: ReturnType<T>) => N): N {
-//     return this.map(fn).value as any;
-//   }
-
-//   public get execute() {
-//     return this.value;
-//   }
-
-//   toString() {
-//     return 'Effect(?)';
-//   }
-
-//   static of<T>(x: T) {
-//     return new Effect(() => x);
-//   }
-// }
