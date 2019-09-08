@@ -1,92 +1,75 @@
-interface FoldableMaybe<T> extends Monad<T>, Foldable<{
+abstract class FoldableMaybe<T> extends Monad<T> implements Foldable<{
   just: T;
   nothing: undefined;
 }> {
-  map<N>(f: (x: T) => N): Maybe<N>;
+  abstract fold<N extends Functor<any>>(match: {
+    just: (x: T) => N;
+    nothing: () => N;
+  }): N;
 
-  readonly isNothing: boolean;
-  readonly isJust: boolean;
+  abstract map<N>(f: (x: T) => N): Maybe<N>;
+
+  abstract readonly isNothing: boolean;
+  abstract readonly isJust: boolean;
 }
 
-type Maybe<T> = Nothing<T> | Just<T>;
+type Maybe<T> = Just<T> | Nothing<T>;
 
-interface Nothing<T> extends FoldableMaybe<T> {
-  readonly isNothing: true;
-  readonly isJust: false;
+class Just<T> extends FoldableMaybe<T> {
+  get isJust(): true { return true; }
+  get isNothing(): false { return false; }
+  
+  toString() {
+    return `Just(${this.value})`;
+  }
+
+  map<N>(f: (x: T) => N): Maybe<N> {
+    return new Just(f(this.value));
+  }
+
+  chain<N extends Monad<any>>(fn: (x: T) => N): N {
+    return fn(this.value);
+  }
+
+  fold: FoldableMaybe<T>['fold'] = match => match.just(this.value)
 }
 
-interface Just<T> extends FoldableMaybe<T> {
-  readonly isNothing: false;
-  readonly isJust: true;
-}
+class Nothing<T> extends FoldableMaybe<T> {
+  constructor () {
+    super(undefined as any);
+  }
 
-const isJust = <T>(m: Maybe<T>): m is Just<T> => !!m.isJust;
-const isNothing = <T>(m: Maybe<T>): m is Nothing<T> => !!m.isNothing;
+  get isJust(): false { return false; }
+  get isNothing(): true { return true; }
+  
+  toString() {
+    return `Nothing`;
+  }
 
-function just<T>(value: T): Just<T> {
-  const j: Just<T> = monad({
-    get isJust(): true { return true; },
-    get isNothing(): false { return false; },
-
-    toString: () => `Just(${value})`,
-
-    join: (isFunctor<T>(value)
-      ? isMonad<T>(value)
-        ? () => value.join()
-        : () => value
-      : () => j
-    ) as Join<T, Just<T>>,
-
-    
-    apply: (isApplicable(value)
-      ? (f: any) => f.map(value)
-      : function (this: any) { return this; }
-    ) as Apply<T, Just<T>>,
-
-    map: <N>(f: (x: T) => N) => just(f(value)),
-
-    chain: <N extends Monad<any>>(fn: (x: T) => N): N => fn(value),
-
-    fold: <N extends Functor<any>>(match: {
-      just: (x: T) => N;
-      nothing: (x?: undefined) => N;
-    }): N => match.just(value)
-  });
-
-  return j;
-}
-
-function nothing<T>(): Nothing<T> {
-  return {
-    [Functor]: Functor,
-    [Monad]: Monad,
-
-    get isJust(): false { return false; },
-    get isNothing(): true { return true; },
-
-    toString: () => `Nothing`,
-
-    join() {
-      return this as any;
-    },
-
-    apply: function (this: any, _: any) {
-      return this;
-    } as Apply<T, Nothing<T>>,
-
-    map<N>(_f: (x: T) => N): Nothing<N> {
-      return this as any;
-    },
-
-    chain<N extends Monad<any>>(_fn: (x: T) => N): N {
-      return this as any;
-    },
-
-    fold: <N extends Functor<any>>(match: {
-      just: (x: T) => N;
-      nothing: (x?: undefined) => N;
-    }): N => match.nothing(),
+  join: () => Join<T, this> = function(this: any) {
+    return this as any;
   };
+
+  map<N>(_f: (x: T) => N): Maybe<N> {
+    return this as any;
+  }
+
+  chain<N extends Monad<any>>(_fn: (x: T) => N): N {
+    return this as any;
+  }
+
+  fold: FoldableMaybe<T>['fold'] = match => match.nothing()
+}
+
+const isJust = <T>(m: Maybe<T>): m is Just<T> => m instanceof Just;
+const isNothing = <T>(m: Maybe<T>): m is Nothing<T> => m instanceof Nothing;
+
+function just<T>(value: T): Maybe<T> {
+  return new Just(value);
+}
+
+function nothing<T>(): Maybe<T> {
+  return new Nothing<T>();
 }
 
 function maybe<T>(value?: T | undefined | null): Maybe<T> {

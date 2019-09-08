@@ -1,22 +1,24 @@
-type Join<T, This> = () => T extends Functor<any>
+type Join<T, This> = T extends Functor<any>
   ? T extends Monad<any>
     ? ReturnType<T['join']>
     : T
   : This;
 
-const Monad = Symbol('Monad');
+const isMonad = <T = any>(m: any): m is Monad<T> => m instanceof Monad;
 
-const monad = <T extends Omit<Monad<any>, typeof Functor | typeof Monad>>(o: T) => functor({
-  [Monad]: Monad as typeof Monad,
-  ...o
-});
+interface Joinable<T> {
+  join(): Join<T, this>;
+}
 
-const isMonad = <T = any>(m: any): m is Monad<T> => m && (m as Monad<T>)[Monad] === Monad;
 
-interface Monad<T> extends Applicative<T> {
-  readonly [Monad]: typeof Monad;
+abstract class Monad<T> extends Functor<T> implements Joinable<T> {
+  join(): Join<T, this> {
+    return isFunctor<T>(this.value)
+      ? isMonad<T>(this.value)
+        ? this.value.join()
+        : this.value
+      : this as any;
+  }
 
-  join: Join<T, this>;
-
-  chain<N extends Monad<any>>(fn: (x: T) => N): N;
+  abstract chain<N extends Monad<any>>(fn: (x: T) => N): any;
 }

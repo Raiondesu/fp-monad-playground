@@ -6,6 +6,7 @@
     "baseUrl": "./src",
     "rootDir": "./src",
     "outDir": "./dist",
+    "experimentalDecorators": true,
     "lib": [
       "dom",
       "es2015",

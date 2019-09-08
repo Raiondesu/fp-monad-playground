@@ -1,27 +1,15 @@
-interface Identity<T> extends Monad<T> {
-  map<N>(f: (x: T) => N): Identity<N>;
+class Identity<T> extends Monad<T> {
+  map<N>(f: (x: T) => N): Identity<N> {
+    return new Identity(f(this.value));
+  }
+
+  chain<N extends Monad<any>>(fn: (x: T) => N): N {
+    return fn(this.value);
+  }
+
+  toString(): string {
+    return `Identity(${this.value})`;
+  }
 }
 
-const identity = <T>(value: T): Identity<T> => {
-  const id: Identity<T> = monad({
-    map: <N>(f: (x: T) => N) => identity(f(value)),
-    
-    chain: <N extends Monad<any>>(fn: (x: T) => N): N => fn(value),
-
-    join: (isFunctor<T>(value)
-      ? isMonad<T>(value)
-        ? () => value.join()
-        : () => value
-      : () => id
-    ) as Join<T, Identity<T>>,
-
-    apply: (isApplicable(value)
-      ? (f: any) => f.map(value)
-      : function (this: any) { return this; }
-    ) as Apply<T, Identity<T>>,
-
-    toString: () => `Identity(${value})`,
-  });
-
-  return id;
-}
+const identity = <T>(value: T) => new Identity(value);
