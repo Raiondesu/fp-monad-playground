@@ -25,9 +25,3 @@ function effect<
 
   return new Effect(value);
 }
-
-effect(document.querySelector)
-  .map(maybe)
-  .chain($ => $('asd'))
-  .
-  

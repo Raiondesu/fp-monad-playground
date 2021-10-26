@@ -92,6 +92,15 @@ class Right<R, L = Error> extends Either<R, L> {
 const right = <R, L = Error>(value: R) => new Right<R, L>(value);
 const left = <R, L>(_rightMarker: R, value: L) => new Left<R, L>(value);
 
-const either: Either<string, Error> = maybe(Math.random() > 0.5 ? null : 'lol')
-  .chain(_ => _.length > 2 ? right(_) : left(_, new Error('min 2 chars')))
+const either: Either<string, Error> =
+  maybe(Math.random() > 0.5 ? null : '345')
+    .chain(_ => _.length > 2
+      ? right(_)
+      : left(_, new Error('min 3 chars')));
+
+either
+  .map(Number)
+  .chainLeft(_ => right(666))
+  .toString();
+// Right(345) or Right(666) or Nothing()
 

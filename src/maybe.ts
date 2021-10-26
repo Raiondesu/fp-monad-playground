@@ -75,3 +75,11 @@ function nothing<T>(): Maybe<T> {
 function maybe<T>(value?: T | undefined | null): Maybe<T> {
   return value == null ? nothing() : just(value);
 }
+
+const array = ['lol', 'kek'];
+const _true = 'true';
+
+maybe('lol')
+  .map(partOf(array))
+  .map(String)
+  .map(includes(_true))
