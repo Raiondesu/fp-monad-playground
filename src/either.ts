@@ -1,71 +1,91 @@
-abstract class FoldableEither<R, L> extends Monad<R> implements Foldable<{
+abstract class Either<R, L> extends Monad<R> implements Foldable<{
   right: R,
   left: L,
 }> {
-  abstract fold<N extends Functor<any>>(match: { right: (value: R) => N; left: (value: L) => N; }): N;
+  abstract fold<N extends Functor<any>>(match: { right: (value: R) => N; left: (value: L) => N; }): N
   abstract join(): Join<R, this>;
   abstract chain<N extends Monad<any>>(fn: (x: R) => N): N;
+  abstract chainLeft<N extends Monad<any>>(fn: (x: L) => N): N;
   abstract toString(): string;
-
-  abstract map<N>(f: (x: R) => N): FoldableEither<N, L>;
-  abstract mapLeft<N>(f: (x: L) => N): FoldableEither<R, N>;
+  abstract map<N>(f: (x: R) => N): Either<N, L>;
+  abstract mapLeft<N>(f: (x: L) => N): Either<R, N>;
 
   static of<R, L>(value: R): Right<R, L> {
     return new Right(value);
   }
 }
 
-const isLeft = <R, L>(m: FoldableEither<R | null, L>): m is Left<R | null, L> => m instanceof Left;
-const isRight = <R, L>(m: FoldableEither<R, L>): m is Right<R, L> => m instanceof Right;
+const isLeft = <R, L>(m: Either<R | null, L>): m is Left<R | null, L> => m instanceof Left;
+const isRight = <R, L>(m: Either<R, L>): m is Right<R, L> => m instanceof Right;
 
-type Either<R, L> = Right<R, L> | Left<R, L>;
-
-class Left<R, L = Error> extends FoldableEither<R | null, L> {
+class Left<R, L = Error> extends Either<R, L> {
   valueLeft: L;
 
   constructor(value: L) {
-    super(null);
+    super(null as any);
     this.valueLeft = value;
   }
 
-  map<N>(f: (x: R) => N): FoldableEither<N, L> {
-    throw new Error('Method not implemented.');
+  map<N>(_f: (x: R) => N): Either<N, L> {
+    return this as unknown as Either<N, L>;
   }
-  mapLeft<N>(f: (x: L) => N): FoldableEither<R, N> {
-    throw new Error('Method not implemented.');
+
+  mapLeft<N>(f: (x: L) => N): Either<R, N> {
+    return new Left(f(this.valueLeft));
   }
+
   join(): Join<R, this> {
-    throw new Error('Method not implemented.');
+    return isFunctor<L>(this.valueLeft)
+      ? isMonad<L>(this.valueLeft)
+        ? this.valueLeft.join()
+        : this.valueLeft
+      : this as any;
   }
-  chain<N extends Monad<any>>(fn: (x: R) => N): N {
-    throw new Error('Method not implemented.');
+
+  chain<N extends Monad<any>>(_fn: (x: R) => N): N {
+    return this as unknown as N;
   }
+
+  chainLeft<N extends Monad<any>>(fn: (x: L) => N): N {
+    return fn(this.valueLeft);
+  }
+
   toString(): string {
-    throw new Error('Method not implemented.');
+    return `Left(${this.valueLeft})`;
   }
+
   fold<N extends Functor<any>>(match: { right: (value: R) => N; left: (value: L) => N; }): N {
-    throw new Error('Method not implemented.');
+    return match.left(this.valueLeft);
   }
 }
 
-class Right<R, L = Error> extends FoldableEither<R, L> {
-  map<N>(f: (x: R) => N): FoldableEither<N, L> {
-    throw new Error('Method not implemented.');
+class Right<R, L = Error> extends Either<R, L> {
+  map<N>(f: (x: R) => N): Either<N, L> {
+    return new Right(f(this.value));
   }
-  mapLeft<N>(f: (x: L) => N): FoldableEither<R, N> {
-    throw new Error('Method not implemented.');
+
+  mapLeft<N>(f: (x: L) => N): Either<R, N> {
+    return this as unknown as Either<R, N>;
   }
+
   join(): Join<R, this> {
-    throw new Error('Method not implemented.');
+    return Monad.prototype.join.call(this);
   }
+
   chain<N extends Monad<any>>(fn: (x: R) => N): N {
-    throw new Error('Method not implemented.');
+    return fn(this.value);
   }
+
+  chainLeft<N extends Monad<any>>(fn: (x: L) => N): N {
+    return this as unknown as N;
+  }
+
   toString(): string {
-    throw new Error('Method not implemented.');
+    return `Right(${this.value})`;
   }
+
   fold<N extends Functor<any>>(match: { right: (value: R) => N; left: (value: L) => N; }): N {
-    throw new Error('Method not implemented.');
+    return match.right(this.value);
   }
 }
 
