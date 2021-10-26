@@ -15,7 +15,7 @@ abstract class Either<R, L> extends Monad<R> implements Foldable<{
   }
 }
 
-const isLeft = <R, L>(m: Either<R | null, L>): m is Left<R | null, L> => m instanceof Left;
+const isLeft = <R, L>(m: Either<R, L>): m is Left<R, L> => m instanceof Left;
 const isRight = <R, L>(m: Either<R, L>): m is Right<R, L> => m instanceof Right;
 
 class Left<R, L = Error> extends Either<R, L> {
